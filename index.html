@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Bed, ICU & Ventilator Inventory Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --primary: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #0f172a;
+            color: white;
+            padding: 1rem 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .stats-summary {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .stat-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .stat-badge.danger { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+        .stat-badge.warning { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+        .stat-badge.success { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+
+        .container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 1.25rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            margin-bottom: 0.35rem;
+            color: var(--text-secondary);
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 0.6rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            outline: none;
+            font-size: 0.9rem;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #1d4ed8; }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .filters {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .filter-btn {
+            padding: 0.4rem 0.8rem;
+            border: 1px solid var(--border);
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+      .filter-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .ward-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .ward-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .ward-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .bed-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+
+        .bed-item {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .bed-item.available { border-left: 4px solid var(--success); }
+        .bed-item.occupied { border-left: 4px solid var(--danger); background: #fef2f2; }
+
+        .bed-action {
+            margin-top: 0.25rem;
+            padding: 0.25rem;
+            font-size: 0.7rem;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .bed-action.release { background: #fee2e2; color: var(--danger); font-weight: bold; }
+        .waitlist { list-style: none; font-size: 0.85rem; max-height: 200px; overflow-y: auto; }
+        .waitlist li { padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
+        .empty-state { color: var(--text-secondary); text-align: center; }
+    </style>
+</head>
+<body>
+    <header class="navbar">
+        <div class="logo">
+            <span class="icon">🏥</span>
+            <h1>PulseTrack | ICU & Equipment Manager</h1>
+        </div>
+        <div class="stats-summary">
+            <div class="stat-badge danger">ICU Occupancy: <span id="icu-occupancy">0%</span></div>
+            <div class="stat-badge warning">Ventilators Free: <span id="vent-free">0</span></div>
+            <div class="stat-badge success">Total Free Beds: <span id="total-free">0</span></div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Sidebar Controls -->
+        <aside class="sidebar">
+            <div class="card">
+                <h3>⚡ Emergency Allocation</h3>
+                <form id="allocate-form">
+                    <div class="form-group">
+                        <label>Patient Name</label>
+                        <input type="text" id="patient-name" placeholder="John Doe" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Triage Urgency Score (1-10)</label>
+                        <input type="number" id="urgency-score" min="1" max="10" value="5" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Resource Required</label>
+                        <select id="resource-type">
+                            <option value="ICU">ICU Bed</option>
+                            <option value="GENERAL">General Bed</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Allocate Highest Priority</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>⏳ Waitlist Priority Queue</h3>
+                <ul id="waitlist-ui" class="waitlist">
+                    <li class="empty-state">No patients currently in queue</li>
+                </ul>
+            </div>
+
+            <button onclick="resetData()" class="btn" style="background:#dc2626; color:white;">Reset System Data</button>
+        </aside>
+        <!-- Main Content Grid -->
+        <main class="main-content">
+            <div class="toolbar">
+                <h2>Hospital Ward View</h2>
+                <div class="filters">
+                    <button class="filter-btn active" onclick="filterWards('ALL', this)">All</button>
+                    <button class="filter-btn" onclick="filterWards('ICU', this)">ICU</button>
+                    <button class="filter-btn" onclick="filterWards('GENERAL', this)">General</button>
+                </div>
+            </div>
+
+            <div id="ward-grid" class="ward-grid">
+                <!-- Dynamic Ward Cards generated by JS -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- DATA STRUCTURES IMPLEMENTATION (Max-Heap for Waitlist) ---
+        class MaxHeap {
+            constructor() {
+                this.heap = [];
+            }
+
+            insert(patient) {
+                this.heap.push(patient);
+                this._heapifyUp();
+            }
+
+            extractMax() {
+                if (this.heap.length === 0) return null;
+                if (this.heap.length === 1) return this.heap.pop();
+                const max = this.heap[0];
+                this.heap[0] = this.heap.pop();
+                this._heapifyDown();
+                return max;
+            }
+
+            _heapifyUp() {
+                let index = this.heap.length - 1;
+                while (index > 0) {
+                    let parentIndex = Math.floor((index - 1) / 2);
+                    if (this.heap[index].urgency <= this.heap[parentIndex].urgency) break;
+                    [this.heap[index], this.heap[parentIndex]] = [this.heap[parentIndex], this.heap[index]];
+                    index = parentIndex;
+                }
+            }
+
+            _heapifyDown() {
+                let index = 0;
+                const length = this.heap.length;
+                while (index * 2 + 1 < length) {
+                    let leftChild = index * 2 + 1;
+                    let rightChild = index * 2 + 2;
+                    let largerChild = leftChild;
+
+                    if (rightChild < length && this.heap[rightChild].urgency > this.heap[leftChild].urgency) {
+                        largerChild = rightChild;
+                    }
+
+                    if (this.heap[index].urgency >= this.heap[largerChild].urgency) break;
+                    [this.heap[index], this.heap[largerChild]] = [this.heap[largerChild], this.heap[index]];
+                    index = largerChild;
+                }
+            }
+
+            toArray() {
+                return [...this.heap].sort((a, b) => b.urgency - a.urgency);
+            }
+
+            loadFromArray(arr) {
+                this.heap = arr || [];
+            }
+        }
+
+        // --- STATE MANAGEMENT ---
+        const bedHashMap = new Map();
+        const waitlistQueue = new MaxHeap();
+        let currentFilter = 'ALL';
+
+        const defaultWards = [
+            { id: 'W1', name: 'ICU Ward A', type: 'ICU', beds: ['ICU-101', 'ICU-102', 'ICU-103', 'ICU-104'] },
+            { id: 'W2', name: 'ICU Ward B', type: 'ICU', beds: ['ICU-201', 'ICU-202', 'ICU-203', 'ICU-204'] },
+            { id: 'W3', name: 'General Ward 1', type: 'GENERAL', beds: ['GEN-301', 'GEN-302', 'GEN-303', 'GEN-304'] }
+        ];
+
+        // --- LOCAL STORAGE PERSISTENCE ---
+        function saveData() {
+            const bedsArray = Array.from(bedHashMap.entries());
+            const waitlistArray = waitlistQueue.toArray();
+            localStorage.setItem('hospital_beds', JSON.stringify(bedsArray));
+            localStorage.setItem('hospital_waitlist', JSON.stringify(waitlistArray));
+        }
+
+        function loadData() {
+            const savedBeds = localStorage.getItem('hospital_beds');
+            const savedWaitlist = localStorage.getItem('hospital_waitlist');
+          <!-- Main Content Grid -->
+        <main class="main-content">
+            <div class="toolbar">
+                <h2>Hospital Ward View</h2>
+                <div class="filters">
+                    <button class="filter-btn active" onclick="filterWards('ALL', this)">All</button>
+                    <button class="filter-btn" onclick="filterWards('ICU', this)">ICU</button>
+                    <button class="filter-btn" onclick="filterWards('GENERAL', this)">General</button>
+                </div>
+            </div>
+
+            <div id="ward-grid" class="ward-grid">
+                <!-- Dynamic Ward Cards generated by JS -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- DATA STRUCTURES IMPLEMENTATION (Max-Heap for Waitlist) ---
+        class MaxHeap {
+            constructor() {
+                this.heap = [];
+            }
+
+            insert(patient) {
+                this.heap.push(patient);
+                this._heapifyUp();
+            }
+
+            extractMax() {
+                if (this.heap.length === 0) return null;
+                if (this.heap.length === 1) return this.heap.pop();
+                const max = this.heap[0];
+                this.heap[0] = this.heap.pop();
+                this._heapifyDown();
+                return max;
+            }
+
+            _heapifyUp() {
+                let index = this.heap.length - 1;
+                while (index > 0) {
+                    let parentIndex = Math.floor((index - 1) / 2);
+                    if (this.heap[index].urgency <= this.heap[parentIndex].urgency) break;
+                    [this.heap[index], this.heap[parentIndex]] = [this.heap[parentIndex], this.heap[index]];
+                    index = parentIndex;
+                }
+            }
+
+            _heapifyDown() {
+                let index = 0;
+                const length = this.heap.length;
+                while (index * 2 + 1 < length) {
+                    let leftChild = index * 2 + 1;
+                    let rightChild = index * 2 + 2;
+                    let largerChild = leftChild;
+
+                    if (rightChild < length && this.heap[rightChild].urgency > this.heap[leftChild].urgency) {
+                        largerChild = rightChild;
+                    }
+
+                    if (this.heap[index].urgency >= this.heap[largerChild].urgency) break;
+                    [this.heap[index], this.heap[largerChild]] = [this.heap[largerChild], this.heap[index]];
+                    index = largerChild;
+                }
+            }
+
+            toArray() {
+                return [...this.heap].sort((a, b) => b.urgency - a.urgency);
+            }
+
+            loadFromArray(arr) {
+                this.heap = arr || [];
+            }
+        }
+
+        // --- STATE MANAGEMENT ---
+        const bedHashMap = new Map();
+        const waitlistQueue = new MaxHeap();
+        let currentFilter = 'ALL';
+
+        const defaultWards = [
+            { id: 'W1', name: 'ICU Ward A', type: 'ICU', beds: ['ICU-101', 'ICU-102', 'ICU-103', 'ICU-104'] },
+            { id: 'W2', name: 'ICU Ward B', type: 'ICU', beds: ['ICU-201', 'ICU-202', 'ICU-203', 'ICU-204'] },
+            { id: 'W3', name: 'General Ward 1', type: 'GENERAL', beds: ['GEN-301', 'GEN-302', 'GEN-303', 'GEN-304'] }
+        ];
+
+        // --- LOCAL STORAGE PERSISTENCE ---
+        function saveData() {
+            const bedsArray = Array.from(bedHashMap.entries());
+            const waitlistArray = waitlistQueue.toArray();
+            localStorage.setItem('hospital_beds', JSON.stringify(bedsArray));
+            localStorage.setItem('hospital_waitlist', JSON.stringify(waitlistArray));
+        }
+
+        function loadData() {
+            const savedBeds = localStorage.getItem('hospital_beds');
+            const savedWaitlist = localStorage.getItem('hospital_waitlist');
+          if (savedBeds && savedWaitlist) {
+                const bedsArray = JSON.parse(savedBeds);
+                bedsArray.forEach(([id, bed]) => {
+                    bedHashMap.set(id, bed);
+                });
+                const waitlistArray = JSON.parse(savedWaitlist);
+                waitlistQueue.loadFromArray(waitlistArray);
+            } else {
+                defaultWards.forEach(ward => {
+                    ward.beds.forEach(bedId => {
+                        bedHashMap.set(bedId, {
+                            id: bedId,
+                            wardId: ward.id,
+                            type: ward.type,
+                            hasVentilator: ward.type === 'ICU',
+                            isOccupied: false,
+                            patientName: null
+                        });
+                    });
+                });
+                saveData();
+            }
+            renderUI();
+        }
+
+        function resetData() {
+            if (confirm("Are you sure you want to clear all data and reset the system?")) {
+                localStorage.removeItem('hospital_beds');
+                localStorage.removeItem('hospital_waitlist');
+                bedHashMap.clear();
+                waitlistQueue.loadFromArray([]);
+                loadData();
+            }
+        }
+
+        // --- FILTER FUNCTIONALITY ---
+        function filterWards(type, btnElement) {
+            currentFilter = type;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            if(btnElement) btnElement.classList.add('active');
+            renderUI();
+        }
+
+        // --- ALLOCATION LOGIC ---
+        function allocateResource(patientName, urgency, requiredType) {
+            let allocatedBed = null;
+
+            for (let [id, bed] of bedHashMap.entries()) {
+                if (!bed.isOccupied && bed.type === requiredType) {
+                    allocatedBed = bed;
+                    break;
+                }
+            }
+
+            if (allocatedBed) {
+                allocatedBed.isOccupied = true;
+                allocatedBed.patientName = patientName;
+                alert(Allocated Bed ${allocatedBed.id} to ${patientName});
+            } else {
+                waitlistQueue.insert({ name: patientName, urgency, requiredType });
+                alert(No available beds for ${requiredType}. Added ${patientName} to Priority Waitlist (Score: ${urgency}).);
+            }
+
+            saveData();
+            renderUI();
+        }
+
+        function releaseBed(bedId) {
+            const bed = bedHashMap.get(bedId);
+            if (!bed) return;
+
+            const releasedPatient = bed.patientName;
+            bed.isOccupied = false;
+            bed.patientName = null;
+
+            const nextPatient = waitlistQueue.extractMax();
+            if (nextPatient) {
+                bed.isOccupied = true;
+                bed.patientName = nextPatient.name;
+                alert(Bed ${bedId} released from ${releasedPatient} and reallocated to priority patient: ${nextPatient.name});
+            } else {
+                alert(Bed ${bedId} released and is now available.);
+            }
+
+            saveData();
+            renderUI();
+        }
+
+        // --- UI RENDERING ---
+        function renderUI() {
+            const wardGrid = document.getElementById('ward-grid');
+            wardGrid.innerHTML = '';
+
+            let occupiedICU = 0;
+            let totalICU = 0;
+            let freeVentilators = 0;
+            let freeBeds = 0;
+
+            defaultWards.forEach(ward => {
+                // Apply filter condition
+                if (currentFilter !== 'ALL' && ward.type !== currentFilter) {
+                    return;
+                }
+
+                const wardCard = document.createElement('div');
+                wardCard.className = 'ward-card';
+                
+                let bedsHTML = '';
+                ward.beds.forEach(bedId => {
+                    const bed = bedHashMap.get(bedId);
+                    if (!bed) return;
+                  if (bed.type === 'ICU') {
+                        totalICU++;
+                        if (bed.isOccupied) occupiedICU++;
+                        if (!bed.isOccupied && bed.hasVentilator) freeVentilators++;
+                    }
+                    if (!bed.isOccupied) freeBeds++;
+
+                    bedsHTML += 
+                        <div class="bed-item ${bed.isOccupied ? 'occupied' : 'available'}">
+                            <strong>${bed.id}</strong>
+                            <span>${bed.isOccupied ? '👤 ' + bed.patientName : '🟢 Available'}</span>
+                            <span>${bed.hasVentilator ? '🫁 Vent' : ''}</span>
+                            ${bed.isOccupied ? <button class="bed-action release" onclick="releaseBed('${bed.id}')">Release</button> : ''}
+                        </div>
+                    ;
+                });
+
+                wardCard.innerHTML = 
+                    <div class="ward-header">
+                        <h3>${ward.name}</h3>
+                        <small>${ward.type}</small>
+                    </div>
+                    <div class="bed-list">${bedsHTML}</div>
+                ;
+                wardGrid.appendChild(wardCard);
+            });
+
+            // Update Header Stats
+            document.getElementById('icu-occupancy').innerText = totalICU > 0 ? ${Math.round((occupiedICU / totalICU) * 100)}% : '0%';
+            document.getElementById('vent-free').innerText = freeVentilators;
+            document.getElementById('total-free').innerText = freeBeds;
+
+            // Update Waitlist UI
+            const waitlistUI = document.getElementById('waitlist-ui');
+            const queueList = waitlistQueue.toArray();
+            if (queueList.length === 0) {
+                waitlistUI.innerHTML = '<li class="empty-state">No patients currently in queue</li>';
+            } else {
+                waitlistUI.innerHTML = queueList.map(p => 
+                    <li>
+                        <strong>${p.name}</strong> - Priority Score: <span style="color:red">${p.urgency}</span>
+                        <br><small>Requires: ${p.requiredType}</small>
+                    </li>
+                ).join('');
+            }
+        }
+
+        // Form Submission Listener
+        document.getElementById('allocate-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('patient-name').value;
+            const urgency = parseInt(document.getElementById('urgency-score').value);
+            const type = document.getElementById('resource-type').value;
+
+            allocateResource(name, urgency, type);
+            document.getElementById('patient-name').value = '';
+        });
+
+        // Initialize App on Load
+        loadData();
+    </script>
+</body>
+</html>
